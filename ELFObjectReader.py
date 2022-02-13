@@ -7,14 +7,12 @@ import sys
 
 ELF32ObjectHeader = raw_structure(b"16B2HII2II6H")
 ELF64ObjectHeader = raw_structure(b"16B2HIL2LI6H")
+
 ELF32ObjectSectionTableEntry = raw_structure(b"10I")
 ELF64ObjectSectionTableEntry = raw_structure(b"2I4L2I2L")
+
 ELF32ObjectProgramTableEntry = raw_structure(b"8I")
 ELF64ObjectProgramTableEntry = raw_structure(b"2I6L")
-#LIBC_LIBRARY = open("/usr/lib/libc.so.6", 'rb')
-#LIBC_LIBRARY = open("/usr/lib32/libwayland-client.so", 'rb')
-#OBJECT = ELF32ObjectHeader.unpack(LIBC_LIBRARY.read(ELF32ObjectHeader.size))
-#OBJECT = ELF64ObjectHeader.unpack(LIBC_LIBRARY.read(ELF64ObjectHeader.size))
 
 ELFObject: dict = {}
 
@@ -136,8 +134,15 @@ def parse_Program_table():
     ELFObject["File"].seek(ELFObject["program_table"]["offset"], 0)
     count = ELFObject["program_table"]["entries"]
     ELFObject["program_table"].update({"entries": {}})
+    if ELFObject["ei_bitness"] == 64:
+        PTE = ELF64ObjectProgramTableEntry
+    elif ELFObject["ei_bitness"] == 32:
+        PTE = ELF32ObjectProgramTableEntry
+    else:
+        print("PTE cannot processed")
+        exit(1)
     for i in range(count):
-        OBJECT = ELF32ObjectProgramTableEntry.unpack(ELFObject["File"].read(ELF32ObjectProgramTableEntry.size))
+        OBJECT = PTE.unpack(ELFObject["File"].read(PTE.size))
         ELFObject["program_table"]["entries"].update({i: {
             "type": OBJECT[0],
             "offset": OBJECT[1],
@@ -155,12 +160,19 @@ def parse_Program_table():
     del i, count, OBJECT
 
 
-def parse_Section_tables():
+def parse_Section_table():
     ELFObject["File"].seek(ELFObject["section_table"]["offset"], 0)
     count = ELFObject["section_table"]["entries"]
     ELFObject["section_table"].update({"entries": {}})
+    if ELFObject["ei_bitness"] == 64:
+        STE = ELF64ObjectSectionTableEntry
+    elif ELFObject["ei_bitness"] == 32:
+        STE = ELF32ObjectSectionTableEntry
+    else:
+        print("STE cannot processed")
+        exit(1)
     for i in range(count):
-        OBJECT = ELF32ObjectSectionTableEntry.unpack(ELFObject["File"].read(ELF32ObjectSectionTableEntry.size))
+        OBJECT = STE.unpack(ELFObject["File"].read(STE.size))
         ELFObject["section_table"]["entries"].update({i: {
             "name": OBJECT[0],
             "type": OBJECT[1],
@@ -176,6 +188,34 @@ def parse_Section_tables():
     del i, count, OBJECT
 
 
+def parse_String_Table():
+    StringTableEntry = ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]]
+    ELFObject["File"].seek(StringTableEntry["section_offset"], 0)
+    OBJECT = ELFObject["File"].read(StringTableEntry["section_size"])
+    StringTable: dict = {}
+    i: int = 0
+    temp_bytestring = b""
+    for char in OBJECT:
+        if char == 0:
+            StringTable.update({i: temp_bytestring})
+            i += 1
+            temp_bytestring = b""
+        else:
+            temp_bytestring += bytes(chr(char), "ascii")
+    StringTableEntry.update({"values": StringTable})
+
+
+def replace_name_in_each_entry():
+    entries = ELFObject["section_table"]["entries"]
+    strings = entries[ELFObject["section_table"]["string_table_index"]]["values"]
+    for entry in entries:
+        try:
+            if strings[entries[entry]["name"]] != b"":
+                entries[entry].update({"name": strings[entries[entry]["name"]]})
+        except KeyError:
+            pass
+
+
 if __name__ == '__main__':
     ELFObject.update({"File": open(sys.argv[1], 'rb')})
     if sys.argv.__contains__("--arch=x64"):
@@ -184,5 +224,7 @@ if __name__ == '__main__':
         ELFObject_reparse(ELFObject, ELF32ObjectHeader)
     parse_ELF_header()
     parse_Program_table()
-    parse_Section_tables()
+    parse_Section_table()
+    parse_String_Table()
+    replace_name_in_each_entry()
     pprint(ELFObject)
