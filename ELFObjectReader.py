@@ -2,17 +2,24 @@
 
 from struct import Struct as raw_structure, error as struct_error
 from pprint import pprint
+from binascii import hexlify
 import sys
 
+# 32bit
 
 ELF32ObjectHeader = raw_structure(b"16B2HII2II6H")
-ELF64ObjectHeader = raw_structure(b"16B2HIL2LI6H")
-
 ELF32ObjectSectionTableEntry = raw_structure(b"10I")
-ELF64ObjectSectionTableEntry = raw_structure(b"2I4L2I2L")
-
+ELF32ObjectSectionTableEntrySymbolTable = raw_structure(b"HLHBBH")
 ELF32ObjectProgramTableEntry = raw_structure(b"8I")
+
+# 64bit
+ELF64ObjectHeader = raw_structure(b"16B2HIL2LI6H")
+ELF64ObjectSectionTableEntry = raw_structure(b"2I4L2I2L")
 ELF64ObjectProgramTableEntry = raw_structure(b"2I6L")
+
+# Structures for STEs
+
+
 
 ELFObject: dict = {}
 
@@ -161,6 +168,7 @@ def parse_Program_table():
 
 
 def parse_Section_table():
+    # TODO: check for parse_ELF_Locations
     ELFObject["File"].seek(ELFObject["section_table"]["offset"], 0)
     count = ELFObject["section_table"]["entries"]
     ELFObject["section_table"].update({"entries": {}})
@@ -188,23 +196,6 @@ def parse_Section_table():
     del i, count, OBJECT
 
 
-def parse_String_Table():
-    StringTableEntry = ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]]
-    ELFObject["File"].seek(StringTableEntry["section_offset"], 0)
-    OBJECT = ELFObject["File"].read(StringTableEntry["section_size"])
-    StringTable: dict = {}
-    i: int = 0
-    temp_bytestring = b""
-    for char in OBJECT:
-        if char == 0:
-            StringTable.update({i: temp_bytestring})
-            i += 1
-            temp_bytestring = b""
-        else:
-            temp_bytestring += bytes(chr(char), "ascii")
-    StringTableEntry.update({"values": StringTable})
-
-
 def replace_name_in_each_entry():
     entries = ELFObject["section_table"]["entries"]
     strings = entries[ELFObject["section_table"]["string_table_index"]]["values"]
@@ -215,6 +206,42 @@ def replace_name_in_each_entry():
         except KeyError:
             pass
 
+# TODO: REIMPLEMENT CAUSE INCORRECT RESULTS
+def read_program_table(entry):
+    file = ELFObject["File"]
+    alignment = entry["align"]
+    good_size = entry["segment_size"]["file"] + (entry["segment_size"]["file"] % alignment)
+    file.seek(entry["address"]["physical"], 0)
+    data = file.read(good_size)
+    print(hexlify(data))
+
+
+def read_section_table(entry, typeOf):
+    file = ELFObject["File"]
+    alignment = entry["address_alignment"]
+    good_size = entry["section_size"] + (entry["section_size"] % alignment)
+    file.seek(entry["section_offset"], 0)
+    OBJECT = file.read(good_size)
+    if typeOf == 0:
+        entry.update({"values": None})
+    elif typeOf == 2:  # SymbolTable
+        SymbolTable: dict = {}
+
+        entry.update({"values": SymbolTable})
+    elif typeOf == 3:  # StringTable
+        StringTable: dict = {}
+        i: int = 0
+        temp_bytestring = b""
+        for char in OBJECT:
+            if char == 0:
+                StringTable.update({i: temp_bytestring})
+                i += 1
+                temp_bytestring = b""
+            else:
+                temp_bytestring += bytes(chr(char), "ascii")
+        entry.update({"values": StringTable})
+    pass
+
 
 if __name__ == '__main__':
     ELFObject.update({"File": open(sys.argv[1], 'rb')})
@@ -223,8 +250,12 @@ if __name__ == '__main__':
     else:
         ELFObject_reparse(ELFObject, ELF32ObjectHeader)
     parse_ELF_header()
-    parse_Program_table()
+    # parse_Program_table()
     parse_Section_table()
-    parse_String_Table()
+    read_section_table(
+        ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]],
+        ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]]["type"])
     replace_name_in_each_entry()
+
+    # read_section_table()
     pprint(ELFObject)
