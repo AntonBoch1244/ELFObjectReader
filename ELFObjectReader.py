@@ -6,15 +6,19 @@ from binascii import hexlify
 import sys
 
 # 32bit
-
 ELF32ObjectHeader = raw_structure(b"16B2HII2II6H")
 ELF32ObjectSectionTableEntry = raw_structure(b"10I")
 ELF32ObjectSectionTableEntrySymbolTable = raw_structure(b"HLHBBH")
+ELF32ObjectSectionTableEntryRelocate = raw_structure(b"II")
+ELF32ObjectSectionTableEntryRelocateAddends = raw_structure(b"IIi")
 ELF32ObjectProgramTableEntry = raw_structure(b"8I")
 
 # 64bit
 ELF64ObjectHeader = raw_structure(b"16B2HIL2LI6H")
 ELF64ObjectSectionTableEntry = raw_structure(b"2I4L2I2L")
+ELF64ObjectSectionTableEntrySymbolTable = raw_structure(b"HBBHLL")
+ELF64ObjectSectionTableEntryRelocate = raw_structure(b"LL")
+ELF64ObjectSectionTableEntryRelocateAddends = raw_structure(b"LLl")
 ELF64ObjectProgramTableEntry = raw_structure(b"2I6L")
 
 
@@ -214,19 +218,40 @@ def read_program_table(entry):
     print(hexlify(data))
 
 
-def read_section_table(entry, typeOf):
+def read_section_table(entry):
     file = ELFObject["File"]
     alignment = entry["address_alignment"]
-    good_size = entry["section_size"] + (entry["section_size"] % alignment)
+    try:
+        good_size = entry["section_size"] + (entry["section_size"] % alignment)
+    except ZeroDivisionError:
+        good_size = 0
     file.seek(entry["section_offset"], 0)
-    OBJECT = file.read(good_size)
-    if typeOf == 0:
-        entry.update({"values": None})
-    elif typeOf == 2:  # SymbolTable
-        SymbolTable: dict = {}
 
+    OBJECT = file.read(good_size)
+
+    if entry["type"] == 0:
+        entry.update({"values": None})
+    elif entry["type"] == 2:  # SymbolTable
+        SymbolTable: dict = {}
+        try:
+            i: int = 0
+            for offset in range(0, entry["section_size"] - 1, 24):
+                name, info, other, section_index, value, size = ELF64ObjectSectionTableEntrySymbolTable.unpack(OBJECT[offset:offset + 24])
+                SymbolTable.update({
+                    i: {
+                        "name": name,
+                        "info": info,
+                        "other": other,
+                        "section_index": section_index,
+                        "value": value,
+                        "size": size
+                    }
+                })
+                i += 1
+        except struct_error:
+            pass  # TODO: Handle!
         entry.update({"values": SymbolTable})
-    elif typeOf == 3:  # StringTable
+    elif entry["type"] == 3:  # StringTable
         StringTable: dict = {}
         i: int = 0
         temp_bytestring = b""
@@ -238,7 +263,41 @@ def read_section_table(entry, typeOf):
             else:
                 temp_bytestring += bytes(chr(char), "ascii")
         entry.update({"values": StringTable})
-    pass
+    elif entry["type"] == 4:
+        RelocateAddend: dict = {}
+        i: int = 0
+        for offset in range(0, entry["section_size"]-1, entry["entry_size"]):
+            OBJECTS = ELF64ObjectSectionTableEntryRelocateAddends.unpack(OBJECT[offset:offset+entry["entry_size"]])
+            address, info, addend = OBJECTS
+            RelocateAddend.update({
+                i: {"address": address,
+                    "info": {
+                        "sym": info >> 32,
+                        "type": info & 0xffffffff
+                    },
+                    "addend": addend}
+            })
+            i += 1
+        entry.update({"values": RelocateAddend})
+    elif entry["type"] == 7:
+        Relocate: dict = {}
+        try:
+            i: int = 0
+            for offset in range(0, entry["section_size"]-1, 16):
+                OBJECTS = ELF64ObjectSectionTableEntryRelocate.unpack(OBJECT[offset:offset+16])
+                address, info = OBJECTS
+                Relocate.update({
+                    i: {"address": address,
+                        "info": {
+                            "sym": info >> 32,
+                            "type": info & 0xffffffff
+                        }}
+                })
+                i += 1
+        except struct_error:
+            pass  # TODO: Handle!
+
+        entry.update({"values": Relocate})
 
 
 if __name__ == '__main__':
@@ -250,10 +309,8 @@ if __name__ == '__main__':
     parse_ELF_header()
     parse_Program_table()
     parse_Section_table()
-    read_section_table(
-        ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]],
-        ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]]["type"])
+    read_section_table(ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]])
     replace_name_in_each_entry()
-
-    # read_section_table()
+    for ste in ELFObject["section_table"]["entries"]:
+        read_section_table(ELFObject["section_table"]["entries"][ste])
     pprint(ELFObject)
