@@ -21,7 +21,6 @@ ELF64ObjectSectionTableEntryRelocate = raw_structure(b"LL")
 ELF64ObjectSectionTableEntryRelocateAddends = raw_structure(b"LLl")
 ELF64ObjectProgramTableEntry = raw_structure(b"2I6L")
 
-
 ELFObject: dict = {}
 
 
@@ -207,6 +206,42 @@ def replace_name_in_each_entry():
         except KeyError:
             pass
 
+# TODO: REIMPLEMENT CAUSE INCORRECT RESULTS
+def read_program_table(entry):
+    file = ELFObject["File"]
+    alignment = entry["align"]
+    good_size = entry["segment_size"]["file"] + (entry["segment_size"]["file"] % alignment)
+    file.seek(entry["address"]["physical"], 0)
+    data = file.read(good_size)
+    print(hexlify(data))
+
+
+def read_section_table(entry, typeOf):
+    file = ELFObject["File"]
+    alignment = entry["address_alignment"]
+    good_size = entry["section_size"] + (entry["section_size"] % alignment)
+    file.seek(entry["section_offset"], 0)
+    OBJECT = file.read(good_size)
+    if typeOf == 0:
+        entry.update({"values": None})
+    elif typeOf == 2:  # SymbolTable
+        SymbolTable: dict = {}
+
+        entry.update({"values": SymbolTable})
+    elif typeOf == 3:  # StringTable
+        StringTable: dict = {}
+        i: int = 0
+        temp_bytestring = b""
+        for char in OBJECT:
+            if char == 0:
+                StringTable.update({i: temp_bytestring})
+                i += 1
+                temp_bytestring = b""
+            else:
+                temp_bytestring += bytes(chr(char), "ascii")
+        entry.update({"values": StringTable})
+    pass
+
 
 def read_program_table(entry):
     # TODO: REIMPLEMENT CAUSE INCORRECT RESULTS
@@ -307,7 +342,7 @@ if __name__ == '__main__':
     else:
         ELFObject_reparse(ELFObject, ELF32ObjectHeader)
     parse_ELF_header()
-    parse_Program_table()
+    # parse_Program_table()
     parse_Section_table()
     read_section_table(ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]])
     replace_name_in_each_entry()
