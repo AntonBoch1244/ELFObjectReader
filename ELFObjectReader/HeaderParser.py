@@ -3,8 +3,8 @@ from struct import Struct
 
 from . import ProgramTableParser, SectionTableParser
 
-class Header:
 
+class Header:
 
     ELF32: Struct = Struct(b"2HII2II6H")
     ELF64: Struct = Struct(b"2HIL2LI6H")
@@ -30,7 +30,8 @@ class Header:
             self.Is32 = self.Bitset == 32
 
         def VerifyMagic(self):
-            self.IsCorrect = self.raw[0:4] == (0x7f, ord('E'), ord('L'), ord('F'))
+            self.IsCorrect =\
+                self.raw[0:4] == (0x7f, ord('E'), ord('L'), ord('F'))
 
         def Parse(self):
             self.VerifyMagic()
@@ -39,9 +40,14 @@ class Header:
             self.VerifyIs32Bit()
             if not self.Bitset or self.Bitset > 64:
                 raise AttributeError("ELFObject contains invalid class.")
-            self.Endian = b"<" if self.raw[5] else b">" if self.raw[5] == 2 else False
+            self.Endian =\
+                b"<" if self.raw[5] else\
+                b">" if self.raw[5] == 2 else\
+                False
             if not self.Endian:
-                raise AttributeError("ELFObject contains invalid endian of data.")
+                raise AttributeError(
+                    "ELFObject contains invalid endian of data."
+                )
             self.Version = self.raw[6]
 
             if self.raw[7] == 0:
@@ -121,15 +127,25 @@ class Header:
         self.Flags = self.raw[6]
         self.HeaderSize = self.raw[7]
         if self.HeaderSize != 52 or self.HeaderSize != 64:
-            raise TypeError(f"ELF has incorrect header size. {self.HeaderSize} != {64 if self.Identity.Is64 else 52 if self.Identity.Is32 else 'How we get here?'}")
+            raise TypeError(
+                f"""ELF has incorrect header size. {self.HeaderSize} != {
+                64 if self.Identity.Is64 else
+                52 if self.Identity.Is32 else
+                'How we get here?'}""")
 
     def __init__(self, raw_data: bytes):
-        if (raw_data.__len__() != self.ELF32.size + 16) and (raw_data.__len__() != self.ELF64.size + 16):
-            raise TypeError(f"Raw data should contain {self.ELF32.size + 16} or {self.ELF64.size + 16}.")
+        if (raw_data.__len__() != self.ELF32.size + 16) and\
+           (raw_data.__len__() != self.ELF64.size + 16):
+            raise TypeError(f"""Raw data should contain {
+                self.ELF32.size + 16
+            } or {
+                self.ELF64.size + 16
+            }.""")
         self.Identity = self._Identity(raw_data[0:16])
         self.ELF32 = Struct(self.Identity.Endian + b"2HII2II6H")
         self.ELF64 = Struct(self.Identity.Endian + b"2HIL2LI6H")
-        if sys.version_info.minor == 10:  # Struct(b"<2HIL2LI6H") == Struct(b"2HII2II6H") Why?
+        # Why on 3.10? Struct(b"<2HIL2LI6H") == Struct(b"2HII2II6H")
+        if sys.version_info.minor == 10:
             self.ELF64 = Struct(b"2HIL2LI6H")
         if self.Identity.Is64:
             self.raw = self.ELF64.unpack(raw_data[16:])
@@ -138,18 +154,18 @@ class Header:
         self.Parse()
 
     def __repr__(self):
-        return f"Header<Identity={self.Identity}," \
-               f" Type={self.RecoglizeableType}," \
-               f" Machine={self.RecoglizeableMachine}," \
-               f" ClassVersion=Current," \
-               f" Entrypoint={self.Entrypoint}," \
-               f" ProgramTable=ProgramTable<Offset={self.ProgramTable.Offset}," \
-               f" EntrySize={self.ProgramTable.EntrySize}," \
-               f" Entries={self.ProgramTable.Entries}>," \
-               f" SectionTable=SectionTable<Offset={self.SectionTable.Offset}," \
-               f" EntrySize={self.SectionTable.EntrySize}," \
-               f" Entries={self.SectionTable.Entries}," \
-               f" StringTableIndex={self.SectionTable.StringTableIndex}>," \
-               f" Flags={self.Flags}" \
-               f" HeaderSize={self.HeaderSize}>"
-
+        return\
+            f"Header<Identity={self.Identity}," \
+            f" Type={self.RecoglizeableType}," \
+            f" Machine={self.RecoglizeableMachine}," \
+            f" ClassVersion=Current," \
+            f" Entrypoint={self.Entrypoint}," \
+            f" ProgramTable=ProgramTable<Offset={self.ProgramTable.Offset}," \
+            f" EntrySize={self.ProgramTable.EntrySize}," \
+            f" Entries={self.ProgramTable.Entries}>," \
+            f" SectionTable=SectionTable<Offset={self.SectionTable.Offset}," \
+            f" EntrySize={self.SectionTable.EntrySize}," \
+            f" Entries={self.SectionTable.Entries}," \
+            f" StringTableIndex={self.SectionTable.StringTableIndex}>," \
+            f" Flags={self.Flags}" \
+            f" HeaderSize={self.HeaderSize}>"

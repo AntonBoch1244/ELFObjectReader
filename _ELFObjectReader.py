@@ -219,4 +219,3 @@ def read_section_table(entry):
             pass  # TODO: Handle!
 
         entry.update({"values": Relocate})
-
