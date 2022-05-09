@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-from . import HeaderParser
+from . import ELFObject
 from sys import argv
 
 
 ELF_File = open(argv[1], 'rb')
-print(HeaderParser.Header(ELF_File.read(64)))
+print(ELFObject.ELFObject(ELF_File))
 assert False
 # parse_Program_table()
 parse_Section_table()
