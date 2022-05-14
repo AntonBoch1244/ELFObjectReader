@@ -33,14 +33,12 @@ class Header:
                 self.raw[0:4] == (0x7f, ord('E'), ord('L'), ord('F'))
 
         def SetHumanRecognizableOSABI(self):
-            if self.OS_ABI == 0:
-                self.RecognizableOSABI = "Unix System V"
-            elif self.OS_ABI == 3:
-                self.RecognizableOSABI = "GNU/Linux"
-
-            # Other OS ABI's support
-            else:
-                self.RecognizableOSABI = "Undefined or unsupported OS ABI"
+            match self.OS_ABI:
+                case 0: self.RecognizableOSABI = "Unix System V"
+                case 3: self.RecognizableOSABI = "GNU/Linux"
+                # Other OS ABI's support
+                case _:
+                    self.RecognizableOSABI = "Undefined or unsupported OS ABI"
 
         def Parse(self):
             self.VerifyMagic()
@@ -82,32 +80,19 @@ class Header:
                    f" Version_ABI={self.ABI_Version}>"
 
     def SetHumanRecognizableType(self):
-        if self.Type == 0:
-            self.RecognizableType = "None"
-        elif self.Type == 1:
-            self.RecognizableType = "Relocatable"
-        elif self.Type == 2:
-            self.RecognizableType = "Executable"
-        elif self.Type == 3:
-            self.RecognizableType = "Dynamic"
-        elif self.Type == 4:
-            self.RecognizableType = "Coredump"
-        else:
-            self.RecognizableType = "Unknown type"
-
-        # OS Specific
-        pass
-
-        # CPU Specific
-        pass
+        match self.Type:
+            case 0: self.RecognizableType = "None"
+            case 1: self.RecognizableType = "Relocatable"
+            case 2: self.RecognizableType = "Executable"
+            case 3: self.RecognizableType = "Dynamic"
+            case 4: self.RecognizableType = "Coredump"
+            case _: self.RecognizableType = "Unknown type"
 
     def SetHumanRecognizableMachine(self):
-        if self.Machine == 3:
-            self.RecognizableMachine = "AMD/Intel x86 architecture"
-        elif self.Machine == 62:
-            self.RecognizableMachine = "AMD/Intel x86-64 architecture"
-        else:
-            self.RecognizableMachine = "Unknown CPU or Architecture"
+        match self.Machine:
+            case 3: self.RecognizableMachine = "AMD/Intel x86 architecture"
+            case 62: self.RecognizableMachine = "AMD/Intel x86-64 architecture"
+            case _: self.RecognizableMachine = "Unknown CPU or Architecture"
 
     def Parse(self):
         if not (self.raw[0] in range(0, 4) or

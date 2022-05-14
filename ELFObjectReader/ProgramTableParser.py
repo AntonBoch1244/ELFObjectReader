@@ -56,24 +56,16 @@ class ProgramTable:
         Align: int
 
         def SetHumanRecognizableType(self):
-            if self.Type == 0:
-                self.RecognizableType = "Unused"
-            elif self.Type == 1:
-                self.RecognizableType = "Loadable"
-            elif self.Type == 2:
-                self.RecognizableType = "Dynamic Linkable"
-            elif self.Type == 3:
-                self.RecognizableType = "Interpreter"
-            elif self.Type == 4:
-                self.RecognizableType = "Note"
-            elif self.Type == 5:
-                self.RecognizableType = "Shared"
-            elif self.Type == 6:
-                self.RecognizableType = "Program header"
-            elif self.Type == 7:
-                self.RecognizableType = "Thread"
-            else:
-                self.RecognizableType = "Reserved"
+            match self.Type:
+                case 0: self.RecognizableType = "Unused"
+                case 1: self.RecognizableType = "Loadable"
+                case 2: self.RecognizableType = "Dynamic Linkable"
+                case 3: self.RecognizableType = "Interpreter"
+                case 4: self.RecognizableType = "Note"
+                case 5: self.RecognizableType = "Shared"
+                case 6: self.RecognizableType = "Program header"
+                case 7: self.RecognizableType = "Thread"
+                case _: self.RecognizableType = "Reserved"
 
         def SetHumanRecognizableFlags(self):
             self.RecognizableFlags = {
