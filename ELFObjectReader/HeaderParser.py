@@ -126,12 +126,12 @@ class Header:
 
         self.Entrypoint = self.raw[3]
 
-        self.ProgramTable = ProgramTableParser.ProgramTable()
+        self.ProgramTable = ProgramTableParser.ProgramTable
         self.ProgramTable.Offset = self.raw[4]
         self.ProgramTable.EntrySize = self.raw[8]
         self.ProgramTable.Entries = self.raw[9]
 
-        self.SectionTable = SectionTableParser.SectionTable()
+        self.SectionTable = SectionTableParser.SectionTable
         self.SectionTable.Offset = self.raw[5]
         self.SectionTable.EntrySize = self.raw[10]
         self.SectionTable.Entries = self.raw[11]
