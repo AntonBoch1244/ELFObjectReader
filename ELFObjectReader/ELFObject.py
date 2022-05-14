@@ -15,7 +15,7 @@ class ELFObject:
         self.ProgramTable = self.Header.ProgramTable
         self.SectionTable = self.Header.SectionTable
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ELFObject<Header={self.Header}" \
                f", ProgramTable={self.ProgramTable}" \
                f", SectionTable={self.SectionTable}>"
