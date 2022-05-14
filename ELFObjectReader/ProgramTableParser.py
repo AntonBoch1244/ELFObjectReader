@@ -47,8 +47,8 @@ class ProgramTable:
             InMemory: int
 
             def __repr__(self) -> str:
-                return f"SegmentSize<InFile={self.InFile}," \
-                       f" InMemory={self.InMemory}>"
+                return f"SegmentSize<InFile={self.InFile}" \
+                       f", InMemory={self.InMemory}>"
 
         Address: _Address
         SegmentSize: _SegmentSize
@@ -81,11 +81,6 @@ class ProgramTable:
                 "Writable": self.Flags.__and__(2) == 2,
                 "Readable": self.Flags.__and__(4) == 4
             }
-
-        def __init__(self, raw_data: bytes):
-            self.raw = raw_data
-            self.Parse()
-            del self.raw
 
         def Parse(self):
             self.Address = self._Address()
