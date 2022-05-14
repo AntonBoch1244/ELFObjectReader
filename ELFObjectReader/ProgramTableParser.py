@@ -80,11 +80,6 @@ class Entry:
         }
 
     def Parse(self, raw_data: bytes):
-        if raw_data.__len__() == self.ELF64Entry.size:
-            EntryStruct = self.ELF64Entry
-        elif raw_data.__len__() == self.ELF32Entry.size:
-            EntryStruct = self.ELF32Entry
-
         self.EntryAddress = self.Address()
         self.EntrySegmentSize = self.SegmentSize()
 
@@ -95,8 +90,7 @@ class Entry:
              self.EntryAddress.VirtualAddress,
              self.EntryAddress.PhysicalAddress,
              self.EntrySegmentSize.InFile, self.EntrySegmentSize.InMemory,
-             self.Align] = EntryStruct.unpack(raw_data)
-
+             self.Align] = self.ELF64Entry.unpack(raw_data)
         elif raw_data.__len__() == self.ELF32Entry.size:
             [self.Type,
              self.Offset,
@@ -104,7 +98,7 @@ class Entry:
              self.EntryAddress.PhysicalAddress,
              self.EntrySegmentSize.InFile, self.EntrySegmentSize.InMemory,
              self.Flags,
-             self.Align] = EntryStruct.unpack(raw_data)
+             self.Align] = self.ELF32Entry.unpack(raw_data)
 
         self.SetHumanRecognizableType()
         self.SetHumanRecognizableFlags()

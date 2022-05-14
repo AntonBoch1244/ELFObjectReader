@@ -32,18 +32,25 @@ class Entry:
 
     def Parse(self, raw_data: bytes):
         if raw_data.__len__() == self.ELF64Entry.size:
-            STE = self.ELF64Entry
+            [self.Name,
+             self.Type,
+             self.Flags,
+             self.VirtualAddress,
+             self.SectionOffset, self.SectionSize,
+             self.Link,
+             self.Information,
+             self.AddressAlignment,
+             self.EntrySize] = self.ELF64Entry.unpack(raw_data)
         elif raw_data.__len__() == self.ELF32Entry.size:
-            STE = self.ELF32Entry
-        [self.Name,
-         self.Type,
-         self.Flags,
-         self.VirtualAddress,
-         self.SectionOffset, self.SectionSize,
-         self.Link,
-         self.Information,
-         self.AddressAlignment,
-         self.EntrySize] = STE.unpack(raw_data)
+            [self.Name,
+             self.Type,
+             self.Flags,
+             self.VirtualAddress,
+             self.SectionOffset, self.SectionSize,
+             self.Link,
+             self.Information,
+             self.AddressAlignment,
+             self.EntrySize] = self.ELF32Entry.unpack(raw_data)
 
     def __repr__(self):
         return f"Entry<Name={self.Name}" \
