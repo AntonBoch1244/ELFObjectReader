@@ -3,14 +3,7 @@
 from . import ELFObject
 from sys import argv
 
-
-ELF_File = open(argv[1], 'rb')
-print(ELFObject.ELFObject(ELF_File))
-assert False
-# parse_Program_table()
-parse_Section_table()
-read_section_table(ELFObject["section_table"]["entries"][ELFObject["section_table"]["string_table_index"]])
-replace_name_in_each_entry()
-for ste in ELFObject["section_table"]["entries"]:
-    read_section_table(ELFObject["section_table"]["entries"][ste])
-pprint(ELFObject)
+for arg in argv[1:]:
+    print(f"Reading {arg}...")
+    ELF_File = open(arg, 'rb')
+    print(ELFObject.ELFObject(ELF_File))
