@@ -6,79 +6,16 @@ from struct import Struct, error
 from binascii import hexlify
 
 # 32bit
-ELF32ObjectSectionTableEntry = Struct(b"10I")
 ELF32ObjectSectionTableEntrySymbolTable = Struct(b"HLHBBH")
 ELF32ObjectSectionTableEntryRelocate = Struct(b"II")
 ELF32ObjectSectionTableEntryRelocateAddends = Struct(b"IIi")
-ELF32ObjectProgramTableEntry = Struct(b"8I")
 
 # 64bit
-ELF64ObjectSectionTableEntry = Struct(b"2I4L2I2L")
-ELF64ObjectSectionTableEntrySymbolTable = Struct(b"HBBHLL")
-ELF64ObjectSectionTableEntryRelocate = Struct(b"LL")
-ELF64ObjectSectionTableEntryRelocateAddends = Struct(b"LLl")
-ELF64ObjectProgramTableEntry = Struct(b"2I6L")
+ELF64ObjectSectionTableEntrySymbolTable = Struct(b"HBBHQQ")
+ELF64ObjectSectionTableEntryRelocate = Struct(b"QQ")
+ELF64ObjectSectionTableEntryRelocateAddends = Struct(b"QQl")
 
 ELFObject: dict = {}
-
-
-def parse_Program_table():
-    ELFObject["File"].seek(ELFObject["program_table"]["offset"], 0)
-    count = ELFObject["program_table"]["entries"]
-    ELFObject["program_table"].update({"entries": {}})
-    if ELFObject["ei_bitness"] == 64:
-        PTE = ELF64ObjectProgramTableEntry
-    elif ELFObject["ei_bitness"] == 32:
-        PTE = ELF32ObjectProgramTableEntry
-    else:
-        print("PTE cannot processed")
-        exit(1)
-    for i in range(count):
-        OBJECT = PTE.unpack(ELFObject["File"].read(PTE.size))
-        ELFObject["program_table"]["entries"].update({i: {
-            "type": OBJECT[0],
-            "offset": OBJECT[1],
-            "address": {
-                "virtual": OBJECT[2],
-                "physical": OBJECT[3]
-            },
-            "segment_size": {
-                "file": OBJECT[4],
-                "memory": OBJECT[5]
-            },
-            "flags": OBJECT[6],
-            "align": OBJECT[7]
-        }})
-    del i, count, OBJECT
-
-
-def parse_Section_table():
-    # TODO: check for parse_ELF_Locations
-    ELFObject["File"].seek(ELFObject["section_table"]["offset"], 0)
-    count = ELFObject["section_table"]["entries"]
-    ELFObject["section_table"].update({"entries": {}})
-    if ELFObject["ei_bitness"] == 64:
-        STE = ELF64ObjectSectionTableEntry
-    elif ELFObject["ei_bitness"] == 32:
-        STE = ELF32ObjectSectionTableEntry
-    else:
-        print("STE cannot processed")
-        exit(1)
-    for i in range(count):
-        OBJECT = STE.unpack(ELFObject["File"].read(STE.size))
-        ELFObject["section_table"]["entries"].update({i: {
-            "name": OBJECT[0],
-            "type": OBJECT[1],
-            "flags": OBJECT[2],
-            "virtual_address": OBJECT[3],
-            "section_offset": OBJECT[4],
-            "section_size": OBJECT[5],
-            "link": OBJECT[6],
-            "information": OBJECT[7],
-            "address_alignment": OBJECT[8],
-            "entry_size": OBJECT[9]
-        }})
-    del i, count, OBJECT
 
 
 def replace_name_in_each_entry():
@@ -90,53 +27,6 @@ def replace_name_in_each_entry():
                 entries[entry].update({"name": strings[entries[entry]["name"]]})
         except KeyError:
             pass
-
-
-def read_program_table(entry):
-    # TODO: REIMPLEMENT CAUSE INCORRECT RESULTS
-    file = ELFObject["File"]
-    alignment = entry["align"]
-    good_size = entry["segment_size"]["file"] + (entry["segment_size"]["file"] % alignment)
-    file.seek(entry["address"]["physical"], 0)
-    data = file.read(good_size)
-    print(hexlify(data))
-
-
-def read_section_table(entry, typeOf):
-    file = ELFObject["File"]
-    alignment = entry["address_alignment"]
-    good_size = entry["section_size"] + (entry["section_size"] % alignment)
-    file.seek(entry["section_offset"], 0)
-    OBJECT = file.read(good_size)
-    if typeOf == 0:
-        entry.update({"values": None})
-    elif typeOf == 2:  # SymbolTable
-        SymbolTable: dict = {}
-
-        entry.update({"values": SymbolTable})
-    elif typeOf == 3:  # StringTable
-        StringTable: dict = {}
-        i: int = 0
-        temp_bytestring = b""
-        for char in OBJECT:
-            if char == 0:
-                StringTable.update({i: temp_bytestring})
-                i += 1
-                temp_bytestring = b""
-            else:
-                temp_bytestring += bytes(chr(char), "ascii")
-        entry.update({"values": StringTable})
-    pass
-
-
-def read_program_table(entry):
-    # TODO: REIMPLEMENT CAUSE INCORRECT RESULTS
-    file = ELFObject["File"]
-    alignment = entry["align"]
-    good_size = entry["segment_size"]["file"] + (entry["segment_size"]["file"] % alignment)
-    file.seek(entry["address"]["physical"], 0)
-    data = file.read(good_size)
-    print(hexlify(data))
 
 
 def read_section_table(entry):
