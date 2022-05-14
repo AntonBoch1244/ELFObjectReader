@@ -170,19 +170,19 @@ class Header:
 
         del self.raw
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return\
-            f"Header<Identity={self.Identity}," \
-            f" Type={self.RecognizableType}," \
-            f" Machine={self.RecognizableMachine}," \
-            f" ClassVersion=Current," \
-            f" Entrypoint={self.Entrypoint}," \
-            f" ProgramTable=ProgramTable<Offset={self.ProgramTable.Offset}," \
-            f" EntrySize={self.ProgramTable.EntrySize}," \
-            f" Entries={self.ProgramTable.Entries}>," \
-            f" SectionTable=SectionTable<Offset={self.SectionTable.Offset}," \
-            f" EntrySize={self.SectionTable.EntrySize}," \
-            f" Entries={self.SectionTable.Entries}," \
-            f" StringTableIndex={self.SectionTable.StringTableIndex}>," \
-            f" Flags={self.Flags}" \
-            f" HeaderSize={self.HeaderSize}>"
+            f"Header<Identity={self.Identity}" \
+            f", Type={self.RecognizableType}" \
+            f", Machine={self.RecognizableMachine}" \
+            f", ClassVersion=Current" \
+            f", Entrypoint={self.Entrypoint}" \
+            f", ProgramTable=ProgramTable<Offset={self.ProgramTable.Offset}" \
+            f", EntrySize={self.ProgramTable.EntrySize}" \
+            f", Entries={self.ProgramTable.Entries}>" \
+            f", SectionTable=SectionTable<Offset={self.SectionTable.Offset}" \
+            f", EntrySize={self.SectionTable.EntrySize}" \
+            f", Entries={self.SectionTable.Entries}" \
+            f", StringTableIndex={self.SectionTable.StringTableIndex}>" \
+            f", Flags={self.Flags}" \
+            f", HeaderSize={self.HeaderSize}>"
